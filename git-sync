@@ -41,7 +41,8 @@ DEFAULT_AUTOCOMMIT_CMD="git add -u ; git commit -m \"%message\";"
 ALL_AUTOCOMMIT_CMD="git add -A ; git commit -m \"%message\";"
 
 # default commit message substituted into autocommit commands
-DEFAULT_AUTOCOMMIT_MSG="changes from $(uname -n) on $(date)"
+#DEFAULT_AUTOCOMMIT_MSG="changes from $(uname -n) on $(date)"
+DEFAULT_AUTOCOMMIT_MSG="$(git diff --cc --diff-algorithm=minimal --ignore-space-at-eol | grep -E '^[+-] +' | head -n 5)"$'\n'"..."
 
 
 # AUTOCOMMIT_CMD="echo \"Please commit or stash pending changes\"; exit 1;"
@@ -146,7 +147,7 @@ sync_state()
 	    ;;
 	"0	0")
 	    echo "equal"
-	    true 
+	    true
 	    ;;
 	"0	"*)
 	    echo "ahead"
@@ -257,7 +258,7 @@ fi
 if [ ! -z "$(local_changes)" ]; then
     autocommit_cmd=""
     config_autocommit_cmd="$(git config --get branch.$branch_name.autocommitscript)"
-    
+
     # discern the three ways to auto-commit
     if [ ! -z "$config_autocommit_cmd" ]; then
 	autocommit_cmd="$config_autocommit_cmd"
@@ -271,9 +272,12 @@ if [ ! -z "$(local_changes)" ]; then
     if [ "" == "$commit_msg" ]; then
       commit_msg=${DEFAULT_AUTOCOMMIT_MSG}
     fi
-    autocommit_cmd=$(echo "$autocommit_cmd" | sed "s/%message/$commit_msg/")
+    autocommit_cmd=$(echo "$autocommit_cmd" | sed "s/%message/\\\$commit_msg/")
 
+    #commit_msg="$(printf '%q' "$commit_msg")"
+    echo "git-sync: commit_msg:\"$commit_msg\""
     echo "git-sync: Committing local changes using ${autocommit_cmd}"
+
     eval $autocommit_cmd
 
     # after autocommit, we should be clean
